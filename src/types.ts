@@ -117,7 +117,18 @@ export type ICalSource = {
 	url: string;
 } & CalendarSourceCommon;
 
+/**
+ * Readonly mirror of a remote CalDAV backed calendar at the given URL.
+ */
+export type CalDAVSource = {
+	type: "caldav";
+	url: string;
+	username: string;
+	password: string;
+} & CalendarSourceCommon;
+
 export type CalendarSource =
 	| LocalCalendarSource
 	| GoogleCalendarSource
-	| ICalSource;
+	| ICalSource
+	| CalDAVSource;

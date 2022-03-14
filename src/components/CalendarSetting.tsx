@@ -10,6 +10,8 @@ interface CalendarSettingsProps {
 	onColorChange: (s: string) => void;
 	onSourceChange: (s: string) => void;
 	onTypeChange: (s: string) => void;
+	onUsernameChange: (s: string) => void;
+	onPasswordChange: (s: string) => void;
 	deleteCalendar: () => void;
 }
 
@@ -20,6 +22,8 @@ export const CalendarSettingRow = ({
 	onColorChange,
 	onSourceChange,
 	onTypeChange,
+	onUsernameChange,
+	onPasswordChange,
 	deleteCalendar,
 }: CalendarSettingsProps) => {
 	const dirOptions = [...options];
@@ -59,7 +63,9 @@ export const CalendarSettingRow = ({
 					))}
 				</select>
 			)}
-			{(setting.type === "gcal" || setting.type === "ical") && (
+			{(setting.type === "caldav" ||
+				setting.type === "gcal" ||
+				setting.type === "ical") && (
 				<textarea
 					style={{
 						maxWidth: "30%",
@@ -70,10 +76,36 @@ export const CalendarSettingRow = ({
 					placeholder={
 						setting.type === "gcal"
 							? "Google Calendar ID (probably in the form LONG_ID@group.calendar.google.com)"
-							: "URL for any .ics file"
+							: "URL for any .ics file or CalDAV source"
 					}
 					value={setting.url || ""}
 					onChange={(e) => onSourceChange(e.target.value)}
+				/>
+			)}
+			{setting.type === "caldav" && (
+				<textarea
+					style={{
+						maxWidth: "30%",
+						fontSize: "8pt",
+						lineHeight: 1,
+						padding: 0,
+					}}
+					placeholder={"username"}
+					value={setting.username || ""}
+					onChange={(e) => onUsernameChange(e.target.value)}
+				/>
+			)}
+			{setting.type === "caldav" && (
+				<textarea
+					style={{
+						maxWidth: "30%",
+						fontSize: "8pt",
+						lineHeight: 1,
+						padding: 0,
+					}}
+					placeholder={"password"}
+					value={setting.password || ""}
+					onChange={(e) => onPasswordChange(e.target.value)}
 				/>
 			)}
 			<select
@@ -85,6 +117,7 @@ export const CalendarSettingRow = ({
 					Calendar source
 				</option>
 				<option value={"local"}>Local calendar</option>
+				<option value={"caldav"}>Remote Calendar (CalDAV)</option>
 				<option value={"ical"}>Remote Calendar (.ics format)</option>
 				<option value={"gcal"}>Google Calendar (Readonly)</option>
 			</select>
@@ -153,7 +186,11 @@ export const CalendarSettings = ({
 							...state.slice(0, idx),
 							{
 								...state[idx],
-								type: newType as "ical" | "local" | "gcal", // TODO: Try to DRY this out.
+								type: newType as
+									| "ical"
+									| "local"
+									| "gcal"
+									| "caldav", // TODO: Try to DRY this out.
 							},
 							...state.slice(idx + 1),
 						])
@@ -166,6 +203,26 @@ export const CalendarSettings = ({
 								...(state[idx].type === "local"
 									? { directory: src }
 									: { url: src }),
+							},
+							...state.slice(idx + 1),
+						])
+					}
+					onUsernameChange={(uname) =>
+						setSettings((state) => [
+							...state.slice(0, idx),
+							{
+								...state[idx],
+								username: uname,
+							},
+							...state.slice(idx + 1),
+						])
+					}
+					onPasswordChange={(pwd) =>
+						setSettings((state) => [
+							...state.slice(0, idx),
+							{
+								...state[idx],
+								password: pwd,
 							},
 							...state.slice(idx + 1),
 						])
@@ -207,7 +264,12 @@ export const CalendarSettings = ({
 												(elt.type === "gcal" &&
 													elt.url !== undefined) ||
 												(elt.type === "ical" &&
-													elt.url !== undefined))
+													elt.url !== undefined) ||
+												(elt.type === "caldav" &&
+													elt.url !== undefined &&
+													elt.username !==
+														undefined &&
+													elt.password !== undefined))
 									)
 									.map((elt) => elt as CalendarSource)
 							);

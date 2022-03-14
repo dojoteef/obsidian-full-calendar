@@ -11,6 +11,7 @@ import { Calendar, EventSourceInput } from "@fullcalendar/core";
 import { IcalExpander } from "vendor/fullcalendar-ical/ical-expander/IcalExpander";
 import * as ReactDOM from "react-dom";
 import { createElement } from "react";
+import * as htmlparser2 from "htmlparser2";
 
 import { renderCalendar } from "./calendar";
 import FullCalendarPlugin from "./main";
@@ -27,6 +28,7 @@ import {
 	CalendarSource,
 	GoogleCalendarSource,
 	ICalSource,
+	CalDAVSource,
 	LocalCalendarSource,
 	PLUGIN_SLUG,
 } from "./types";
@@ -129,6 +131,9 @@ export class CalendarView extends ItemView {
 			(sources.length === 0 &&
 				this.plugin.settings.calendarSources.filter(
 					(s) => s.type === "ical"
+				).length === 0 &&
+				this.plugin.settings.calendarSources.filter(
+					(s) => s.type === "caldav"
 				).length === 0)
 		) {
 			calendarEl.style.height = "100%";
@@ -262,6 +267,86 @@ export class CalendarView extends ItemView {
 							start,
 							end,
 						});
+						return events;
+					},
+					editable: false,
+					textColor: getComputedStyle(document.body).getPropertyValue(
+						"--text-on-accent"
+					),
+					color:
+						s.color ||
+						getComputedStyle(document.body).getPropertyValue(
+							"--interactive-accent"
+						),
+				};
+			})
+			.forEach((prom) => {
+				prom.then((source) => this.calendar?.addEventSource(source));
+			});
+
+		this.plugin.settings.calendarSources
+			.filter((s) => s.type === "caldav")
+			.map(async (s): Promise<EventSourceInput> => {
+				let dav = (s as CalDAVSource);
+				let expanders: IcalExpander[] = [];
+                const getExpanders = async (): Promise<IcalExpander[]> => {
+					if (expanders.length) {
+						return expanders;
+					}
+					try {
+						// Create the caldav parser
+						let icsText: string = "";
+                        let calData: boolean = false;
+						const parser = new htmlparser2.Parser({
+							oncdatastart() { calData = true; },
+							oncdataend() { calData = false; },
+							ontext(text) { if (calData) expanders = expanders.concat(makeICalExpander(text)); }
+						}, {xmlMode: true});
+
+						parser.write(await request({
+							url: dav.url,
+							method: "REPORT",
+							contentType: "application/xml",
+							headers: {
+								"Depth": "1",
+								"Authorization": "Basic" + new Buffer(dav.username + ":" + dav.password).toString("base64")
+							},
+							// Request only calendar events from the caldav server
+							body: `<c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
+									   <d:prop>
+										   <c:calendar-data/>
+									   </d:prop>
+									   <c:filter>
+										   <c:comp-filter name="VCALENDAR">
+											   <c:comp-filter name="VEVENT"/>
+										   </c:comp-filter>
+									   </c:filter>
+								   </c:calendar-query>`
+						}));
+
+						return expanders;
+					} catch (e) {
+						new Notice(
+							`There was an error loading a calendar. Check the console for full details.`
+						);
+						console.error(`Error loading calendar from ${dav.url}`);
+						console.error(e);
+                        return expanders;
+					}
+
+				};
+				return {
+					events: async function ({ start, end }) {
+						const icals = await getExpanders();
+						if (icals.length === 0) {
+							throw new Error("Could not get calendar.");
+						}
+						const events = icals.flatMap((ical) =>
+							expandICalEvents(ical, {
+								start,
+								end,
+							})
+						);
 						return events;
 					},
 					editable: false,

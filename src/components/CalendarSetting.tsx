@@ -76,37 +76,43 @@ export const CalendarSettingRow = ({
 					placeholder={
 						setting.type === "gcal"
 							? "Google Calendar ID (probably in the form LONG_ID@group.calendar.google.com)"
-							: "URL for any .ics file or CalDAV source"
+							: setting.type === "ical"
+							? "URL for any .ics file"
+							: setting.type === "caldav"
+							? "URL for any CalDAV source"
+							: "Unknown source type. Please submit a bug report!"
 					}
 					value={setting.url || ""}
 					onChange={(e) => onSourceChange(e.target.value)}
 				/>
 			)}
 			{setting.type === "caldav" && (
-				<textarea
-					style={{
-						maxWidth: "30%",
-						fontSize: "8pt",
-						lineHeight: 1,
-						padding: 0,
-					}}
-					placeholder={"username"}
-					value={setting.username || ""}
-					onChange={(e) => onUsernameChange(e.target.value)}
-				/>
-			)}
-			{setting.type === "caldav" && (
-				<textarea
-					style={{
-						maxWidth: "30%",
-						fontSize: "8pt",
-						lineHeight: 1,
-						padding: 0,
-					}}
-					placeholder={"password"}
-					value={setting.password || ""}
-					onChange={(e) => onPasswordChange(e.target.value)}
-				/>
+				<>
+					<input
+						type="text"
+						style={{
+							maxWidth: "30%",
+							fontSize: "8pt",
+							lineHeight: 1,
+							padding: 0,
+						}}
+						placeholder={"username"}
+						value={setting.username || ""}
+						onChange={(e) => onUsernameChange(e.target.value)}
+					/>
+					<input
+						type="password"
+						style={{
+							maxWidth: "30%",
+							fontSize: "8pt",
+							lineHeight: 1,
+							padding: 0,
+						}}
+						placeholder={"password"}
+						value={setting.password || ""}
+						onChange={(e) => onPasswordChange(e.target.value)}
+					/>
+				</>
 			)}
 			<select
 				style={{ maxWidth: "30%" }}

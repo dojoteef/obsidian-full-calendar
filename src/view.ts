@@ -289,14 +289,14 @@ export class CalendarView extends ItemView {
 			.map(async (s): Promise<EventSourceInput> => {
 				let dav = (s as CalDAVSource);
 				let expanders: IcalExpander[] = [];
-                const getExpanders = async (): Promise<IcalExpander[]> => {
+				const getExpanders = async (): Promise<IcalExpander[]> => {
 					if (expanders.length) {
 						return expanders;
 					}
 					try {
 						// Create the caldav parser
 						let icsText: string = "";
-                        let calData: boolean = false;
+						let calData: boolean = false;
 						const parser = new htmlparser2.Parser({
 							oncdatastart() { calData = true; },
 							oncdataend() { calData = false; },
@@ -309,6 +309,8 @@ export class CalendarView extends ItemView {
 							contentType: "application/xml",
 							headers: {
 								"Depth": "1",
+								// TODO: Support OAuth for Google Calendars
+								// https://developers.google.com/calendar/caldav/v2/guide
 								"Authorization": "Basic" + new Buffer(dav.username + ":" + dav.password).toString("base64")
 							},
 							// Request only calendar events from the caldav server
@@ -331,7 +333,7 @@ export class CalendarView extends ItemView {
 						);
 						console.error(`Error loading calendar from ${dav.url}`);
 						console.error(e);
-                        return expanders;
+						return expanders;
 					}
 
 				};

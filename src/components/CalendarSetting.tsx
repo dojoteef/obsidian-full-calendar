@@ -69,6 +69,7 @@ export const CalendarSettingRow = ({
 				<textarea
 					style={{
 						maxWidth: "30%",
+						minWidth: "10%",
 						fontSize: "8pt",
 						lineHeight: 1,
 						padding: 0,
@@ -92,6 +93,7 @@ export const CalendarSettingRow = ({
 						type="text"
 						style={{
 							maxWidth: "30%",
+							minWidth: "10%",
 							fontSize: "8pt",
 							lineHeight: 1,
 							padding: 0,
@@ -104,6 +106,7 @@ export const CalendarSettingRow = ({
 						type="password"
 						style={{
 							maxWidth: "30%",
+							minWidth: "10%",
 							fontSize: "8pt",
 							lineHeight: 1,
 							padding: 0,

@@ -132,11 +132,18 @@ interface InternalState {
 // 	xhr.send(null);
 // }
 
-export function makeICalExpander(text: string): IcalExpander {
-	return new IcalExpander({
-		ics: text,
-		skipInvalidDates: true,
-	});
+export function makeICalExpander(text: string): IcalExpander | null {
+	let expander: IcalExpander | null = null;
+	try {
+		expander = new IcalExpander({
+			ics: text,
+			skipInvalidDates: true,
+		});
+	} catch (e) {
+		console.error("Unable to parse calendar");
+		console.error(e);
+	}
+	return expander;
 }
 
 export function expandICalEvents(

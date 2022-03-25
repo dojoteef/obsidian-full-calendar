@@ -11,8 +11,9 @@ import { Calendar, EventSourceInput } from "@fullcalendar/core";
 import { IcalExpander } from "vendor/fullcalendar-ical/ical-expander/IcalExpander";
 import * as ReactDOM from "react-dom";
 import { createElement } from "react";
-import * as htmlparser2 from "htmlparser2";
 
+import * as dav from "dav";
+import * as transport from "./transport";
 import { renderCalendar } from "./calendar";
 import FullCalendarPlugin from "./main";
 import { EventModal } from "./modal";
@@ -287,51 +288,37 @@ export class CalendarView extends ItemView {
 		this.plugin.settings.calendarSources
 			.filter((s) => s.type === "caldav")
 			.map(async (s): Promise<EventSourceInput> => {
-				let dav = (s as CalDAVSource);
+				let davSource = (s as CalDAVSource);
 				let expanders: IcalExpander[] = [];
 				const getExpanders = async (): Promise<IcalExpander[]> => {
 					if (expanders.length) {
 						return expanders;
 					}
 					try {
-						// Create the caldav parser
-						let icsText: string = "";
-						let calData: boolean = false;
-						const parser = new htmlparser2.Parser({
-							oncdatastart() { calData = true; },
-							oncdataend() { calData = false; },
-							ontext(text) { if (calData) expanders = expanders.concat(makeICalExpander(text)); }
-						}, {xmlMode: true});
+						let xhr = new transport.Basic(
+							new dav.Credentials({
+								username: davSource.username,
+								password: davSource.password
+							})
+						);
+						let account = await dav.createAccount({
+							xhr: xhr,
+							server: davSource.url,
+							loadObjects: true,
+							loadCollections: true
+						})
 
-						parser.write(await request({
-							url: dav.url,
-							method: "REPORT",
-							contentType: "application/xml",
-							headers: {
-								"Depth": "1",
-								// TODO: Support OAuth for Google Calendars
-								// https://developers.google.com/calendar/caldav/v2/guide
-								"Authorization": "Basic" + new Buffer(dav.username + ":" + dav.password).toString("base64")
-							},
-							// Request only calendar events from the caldav server
-							body: `<c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
-									   <d:prop>
-										   <c:calendar-data/>
-									   </d:prop>
-									   <c:filter>
-										   <c:comp-filter name="VCALENDAR">
-											   <c:comp-filter name="VEVENT"/>
-										   </c:comp-filter>
-									   </c:filter>
-								   </c:calendar-query>`
-						}));
-
+						expanders = account?.calendars.flatMap((calendar) =>
+							calendar?.objects.flatMap((vevent) =>
+								vevent?.calendarData ? makeICalExpander(vevent.calendarData) : null
+							)
+						).filter((expander): expander is IcalExpander => !!expander);
 						return expanders;
 					} catch (e) {
 						new Notice(
 							`There was an error loading a calendar. Check the console for full details.`
 						);
-						console.error(`Error loading calendar from ${dav.url}`);
+						console.error(`Error loading calendar from ${davSource.url}`);
 						console.error(e);
 						return expanders;
 					}

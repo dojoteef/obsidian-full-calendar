@@ -10,7 +10,8 @@ import {
 } from "./crud";
 
 import { EditEvent } from "./components/EditEvent";
-import { EventFrontmatter, LocalCalendarSource } from "./types";
+import { AddCalendarSource } from "./components/AddCalendarSource";
+import { EventFrontmatter, CalendarSource } from "./types";
 import { FULL_CALENDAR_VIEW_TYPE } from "./view";
 
 export class EventModal extends Modal {
@@ -130,6 +131,28 @@ export class EventModal extends Modal {
 			}),
 			contentEl
 		);
+	}
+
+	onClose() {
+		const { contentEl } = this;
+		ReactDOM.unmountComponentAtNode(contentEl);
+	}
+}
+
+export class ReactModal<Props, Component> extends Modal {
+	onOpenCallback: () => Promise<ReturnType<typeof React.createElement>>;
+
+	constructor(
+		app: App,
+		onOpenCallback: () => Promise<ReturnType<typeof React.createElement>>
+	) {
+		super(app);
+		this.onOpenCallback = onOpenCallback;
+	}
+
+	async onOpen() {
+		const { contentEl } = this;
+		ReactDOM.render(await this.onOpenCallback(), contentEl);
 	}
 
 	onClose() {

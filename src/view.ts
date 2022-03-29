@@ -33,13 +33,12 @@ import {
 	LocalCalendarSource,
 	PLUGIN_SLUG,
 } from "./types";
-import { CalendarSettings } from "./components/CalendarSetting";
 import { eventApiToFrontmatter } from "./frontmatter";
 import {
 	expandICalEvents,
 	makeICalExpander,
 } from "vendor/fullcalendar-ical/icalendar";
-import { renderSourceManager } from "./settings";
+import { addCalendarButton } from "./settings";
 
 export const FULL_CALENDAR_VIEW_TYPE = "full-calendar-view";
 
@@ -131,10 +130,7 @@ export class CalendarView extends ItemView {
 			!sources ||
 			(sources.length === 0 &&
 				this.plugin.settings.calendarSources.filter(
-					(s) => s.type === "ical"
-				).length === 0 &&
-				this.plugin.settings.calendarSources.filter(
-					(s) => s.type === "caldav"
+					(s) => s.type === "ical" || s.type === "caldav" || s.type === "icloud"
 				).length === 0)
 		) {
 			calendarEl.style.height = "100%";
@@ -150,14 +146,15 @@ export class CalendarView extends ItemView {
 
 			const container = notice.createDiv();
 			container.style.position = "fixed";
-			renderSourceManager(
-				this.app.vault,
+			addCalendarButton(
+				this.app,
 				this.plugin,
 				container,
-				async (settings) => {
-					if (settings.length > 0) {
-						await this.plugin.activateView();
-					}
+				async (source: CalendarSource) => {
+					const { calendarSources } = this.plugin.settings;
+					calendarSources.push(source);
+					await this.plugin.saveSettings();
+					await this.plugin.activateView();
 				}
 			);
 			return;
@@ -286,7 +283,7 @@ export class CalendarView extends ItemView {
 			});
 
 		this.plugin.settings.calendarSources
-			.filter((s) => s.type === "caldav")
+			.filter((s) => s.type === "caldav" || s.type === "icloud")
 			.map(async (s): Promise<EventSourceInput> => {
 				let davSource = (s as CalDAVSource);
 				let expanders: IcalExpander[] = [];

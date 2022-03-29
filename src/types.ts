@@ -1,3 +1,5 @@
+import { MetadataCache, Vault } from "obsidian";
+
 export const PLUGIN_SLUG = "full-calendar-plugin";
 
 // Frontmatter
@@ -173,4 +175,11 @@ export function partialCalendarSource(
 			.getPropertyValue("--interactive-accent")
 			.trim()
 	};
+}
+
+export class FCError {
+	message: string;
+	constructor(message: string) {
+		this.message = message;
+	}
 }

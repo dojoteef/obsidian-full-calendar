@@ -1,3 +1,6 @@
+/**
+ * Handles rendering the calendar given a container element, eventSources, and interaction callbacks.
+ */
 import {
 	Calendar,
 	EventApi,
@@ -15,20 +18,29 @@ import iCalendarPlugin from "@fullcalendar/icalendar";
 interface ExtraRenderProps {
 	eventClick?: (info: EventClickArg) => void;
 	select?: (startDate: Date, endDate: Date, allDay: boolean) => Promise<void>;
-	modifyEvent?: (event: EventApi) => Promise<boolean>;
+	modifyEvent?: (event: EventApi, oldEvent: EventApi) => Promise<boolean>;
 	eventMouseEnter?: (info: EventHoveringArg) => void;
 }
 
 export function renderCalendar(
 	containerEl: HTMLElement,
 	eventSources: EventSourceInput[],
-	{ eventClick, select, modifyEvent, eventMouseEnter }: ExtraRenderProps
+	settings?: ExtraRenderProps
 ): Calendar {
 	const isMobile = window.innerWidth < 500;
+	const { eventClick, select, modifyEvent, eventMouseEnter } = settings || {};
 	const modifyEventCallback =
 		modifyEvent &&
-		(async ({ event, revert }: { event: EventApi; revert: () => void }) => {
-			const success = await modifyEvent(event);
+		(async ({
+			event,
+			oldEvent,
+			revert,
+		}: {
+			event: EventApi;
+			oldEvent: EventApi;
+			revert: () => void;
+		}) => {
+			const success = await modifyEvent(event, oldEvent);
 			if (!success) {
 				revert();
 			}

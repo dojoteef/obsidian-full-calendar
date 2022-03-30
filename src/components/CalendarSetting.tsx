@@ -55,6 +55,28 @@ function Url<T extends Partial<CalendarSource>>({ source }: BasicProps<T>) {
 	);
 }
 
+function Name<T extends Partial<CalendarSource>>({ source }: BasicProps<T>) {
+	if (source.type !== "caldav" && source.type !== "icloud") {
+		return null;
+	}
+
+	let sourceWithName = source as SourceWith<T, { name: undefined }>;
+	return (
+		<div className="setting-item-control">
+			<input
+				disabled
+				type="text"
+				value={sourceWithName.name}
+				style={{
+					width: "100%",
+					marginLeft: 4,
+					marginRight: 4,
+				}}
+			/>
+		</div>
+	);
+}
+
 function Username<T extends Partial<CalendarSource>>({
 	source,
 }: BasicProps<T>) {
@@ -101,6 +123,7 @@ export const CalendarSettingRow = ({
 			</button>
 			<Directory source={setting} />
 			<Url source={setting} />
+			<Name source={setting} />
 			<Username source={setting} />
 			<input
 				style={{ maxWidth: "25%", minWidth: "3rem" }}

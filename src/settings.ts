@@ -1,8 +1,9 @@
 import FullCalendarPlugin from "./main";
-import { App, DropdownComponent, PluginSettingTab, Setting, TFolder, Vault } from "obsidian";
-import { partialCalendarSource, CalendarSource } from "./types";
+import { App, DropdownComponent, Notice, PluginSettingTab, Setting, TFolder, Vault } from "obsidian";
+import { partialCalendarSource, CalendarSource, FCError } from "./types";
 import { CalendarSettings } from "./components/CalendarSetting";
 import { AddCalendarSource } from "./components/AddCalendarSource";
+import { RemoteSource } from "./models/EventSource";
 import * as ReactDOM from "react-dom";
 import { createElement, useState } from "react";
 import { ReactModal } from "./modal";
@@ -18,7 +19,6 @@ export const DEFAULT_SETTINGS: FullCalendarSettings = {
 	defaultCalendar: 0,
 	recursiveLocal: false,
 };
-
 
 export function addCalendarButton(
 	app: App,
@@ -67,8 +67,17 @@ export function addCalendarButton(
 							directories: directories.filter(
 								(dir) => usedDirectories.indexOf(dir) === -1
 							),
-							submit: async (source: CalendarSource) => {
-								submitCallback(source);
+                            submit: async (source: CalendarSource) => {
+                                if (source.type === "caldav" || source.type === "icloud") {
+                                    let sources = await new RemoteSource(source).importCalendars();
+                                    if (sources instanceof FCError) {
+                                        new Notice(sources.message);
+                                    } else {
+                                        sources.forEach((source) => submitCallback(source));
+                                    }
+                                } else {
+                                    submitCallback(source);
+                                }
 								modal.close();
 							}
 						});

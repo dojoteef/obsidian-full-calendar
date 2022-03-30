@@ -134,8 +134,10 @@ type AuthType = BasicAuth;
  * Read/write mirror of a remote CalDAV backed calendar at the given URL.
  */
 export type CalDAVSource = {
-	type: "caldav";
-	url: string;
+    type: "caldav";
+    name: string;
+    url: string;
+    homeUrl: string;
 } & CalendarSourceCommon & AuthType;
 
 /**

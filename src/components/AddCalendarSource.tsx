@@ -67,6 +67,10 @@ function Color<T extends Partial<CalendarSource>>({
 	source,
 	changeListener,
 }: BasicProps<T>) {
+	if (source.type === "caldav" || source.type === "icloud") {
+		return null;
+	}
+
 	return (
 		<div className="setting-item">
 			<div className="setting-item-info">
@@ -230,7 +234,12 @@ export const AddCalendarSource = ({
 				<div className="setting-item">
 					<div className="setting-item-info" />
 					<div className="setting-control">
-						<button type="submit">Add Calendar</button>
+						<button type="submit">
+							{setting.type === "caldav" ||
+							setting.type === "icloud"
+								? "Import Calendars"
+								: "Add Calendar"}
+						</button>
 					</div>
 				</div>
 			</form>

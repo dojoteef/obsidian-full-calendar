@@ -13,6 +13,7 @@ import {
 	makeICalExpander,
 } from "vendor/fullcalendar-ical/icalendar";
 import { NoteEvent } from "./NoteEvent";
+import Color from "color";
 import * as dav from "dav";
 import * as transport from "src/transport";
 
@@ -146,6 +147,58 @@ export class RemoteSource extends EventSource {
 		this.info = info;
 	}
 
+	async importCalendars(): Promise<CalDAVSource[] | FCError> {
+		try {
+			let xhr = new transport.Basic(
+				new dav.Credentials({
+					username: this.info.username,
+					password: this.info.password,
+				})
+			);
+			let account = await dav.createAccount({
+				xhr: xhr,
+				server: this.info.url,
+				loadObjects: false,
+				loadCollections: true,
+			});
+
+			let colorRequest = dav.request.propfind({
+				props: [
+					{ name: "calendar-color", namespace: dav.ns.CALDAV_APPLE },
+				],
+				depth: "0",
+			});
+
+			return (
+				await Promise.all(
+					account.calendars.flatMap(async (calendar) => {
+						if (!calendar.components.includes("VEVENT")) {
+							return null;
+						}
+						let colorResponse = await xhr.send(
+							colorRequest,
+							calendar.url
+						);
+						let color = colorResponse[0].props?.calendarColor;
+						return {
+							...this.info,
+							type: "caldav",
+							name: calendar.displayName,
+							homeUrl: calendar.url,
+							color: color ? Color(color).hex() : this.info.color,
+						};
+					})
+				)
+			).filter((source): source is CalDAVSource => !!source);
+		} catch (e) {
+			console.error(`Error importing calendars from ${this.info.url}`);
+			console.error(e);
+			return new FCError(
+				`There was an error loading a calendar. Check the console for full details.`
+			);
+		}
+	}
+
 	async toApi(): Promise<EventSourceInput | FCError> {
 		let expanders: (IcalExpander | FCError)[] = [];
 		const getExpanders = async (): Promise<(IcalExpander | FCError)[]> => {
@@ -162,26 +215,36 @@ export class RemoteSource extends EventSource {
 				let account = await dav.createAccount({
 					xhr: xhr,
 					server: this.info.url,
-					loadObjects: true,
-					loadCollections: true,
+				});
+				let calendar = account.calendars.find(
+					(calendar) => calendar.url === this.info.homeUrl
+				);
+				if (!calendar) {
+					return [
+						new FCError(
+							`There was an error loading a calendar event. Check the console for full details.`
+						),
+					];
+				}
+
+				let events = await dav.listCalendarObjects(calendar, {
+					xhr: xhr,
 				});
 
-				expanders = account?.calendars
-					.flatMap((calendar) =>
-						calendar?.objects.flatMap((vevent) => {
-							try {
-								return vevent?.calendarData
-									? makeICalExpander(vevent.calendarData)
-									: null;
-							} catch (e) {
-								console.error("Unable to parse calendar");
-								console.error(e);
-								new FCError(
-									`There was an error loading a calendar event. Check the console for full details.`
-								);
-							}
-						})
-					)
+				expanders = events
+					.flatMap((vevent) => {
+						try {
+							return vevent?.calendarData
+								? makeICalExpander(vevent.calendarData)
+								: null;
+						} catch (e) {
+							console.error("Unable to parse calendar");
+							console.error(e);
+							new FCError(
+								`There was an error loading a calendar event. Check the console for full details.`
+							);
+						}
+					})
 					.filter((expander): expander is IcalExpander => !!expander);
 				return expanders;
 			} catch (e) {

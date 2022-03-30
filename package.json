@@ -20,9 +20,9 @@
 	},
 	"license": "MIT",
 	"devDependencies": {
-		"@types/co": "4.6.3",
-        "@types/color": "3.0.3",
-		"@types/dav": "1.7.3",
+		"@types/co": "^4.6.3",
+		"@types/color": "^3.0.3",
+		"@types/dav": "^1.7.4",
 		"@types/luxon": "^2.0.9",
 		"@types/node": "^16.11.6",
 		"@types/react": "^17.0.38",
